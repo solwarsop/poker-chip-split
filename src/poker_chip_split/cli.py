@@ -231,6 +231,7 @@ def distribute_command(args: argparse.Namespace) -> int:
             config.chip_set,
             fixed_values,
             config.num_players,
+            config.buy_in_per_person,  # Pass the buy-in target
         )
         
         if distribution is None:
@@ -241,7 +242,7 @@ def distribute_command(args: argparse.Namespace) -> int:
         
         # Print results (create a mock config with per-player value for formatting)
         mock_config = PokerConfig(
-            buy_in_per_person=distribution.total_value_per_player,
+            buy_in_per_person=config.buy_in_per_person,  # Use actual buy-in from config
             num_players=config.num_players,
             chip_colors=config.chip_colors,
         )
@@ -268,8 +269,9 @@ def print_distribution_fixed_values(distribution: ChipDistribution, config: Poke
     print("="*60)
     
     print(f"\nGame Configuration:")
+    print(f"  Buy-in per player: ${config.buy_in_per_person:.2f}")
     print(f"  Number of players: {config.num_players}")
-    total_pot = distribution.total_value_per_player * config.num_players
+    total_pot = config.buy_in_per_person * config.num_players
     print(f"  Total pot: ${total_pot:.2f}")
     
     print(f"\nChip Values (Fixed):")
@@ -288,6 +290,12 @@ def print_distribution_fixed_values(distribution: ChipDistribution, config: Poke
             print(f"  {color.capitalize()}: {count} chips (${color_total:.2f})")
     
     print(f"\nTotal per player: {total_chips} chips worth ${total_value:.2f}")
+    print(f"Target buy-in: ${config.buy_in_per_person:.2f}")
+    error = abs(total_value - config.buy_in_per_person)
+    if error < 0.01:  # Practically perfect
+        print(f"✓ Perfect match!")
+    else:
+        print(f"Error: ${error:.2f} ({error/config.buy_in_per_person*100:.1f}%)")
     
     print(f"\nUnused Chips:")
     total_unused = 0
