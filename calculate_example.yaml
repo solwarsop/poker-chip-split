@@ -6,3 +6,4 @@ chip_colors:
   red: 100
   white: 100
 num_players: 9
+chip_values: [0.05, 0.10, 0.25, 0.5, 1]
