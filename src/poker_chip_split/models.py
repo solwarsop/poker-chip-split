@@ -26,6 +26,7 @@ class ChipDistribution:
     chips_per_player: dict[str, int]  # color -> quantity per player
     total_value_per_player: float
     unused_chips: dict[str, int]  # color -> unused quantity
+    num_players: int = 1  # number of players (added for efficiency calculation)
     
     def get_player_value(self) -> float:
         """Calculate the total value each player receives."""
@@ -43,8 +44,22 @@ class ChipDistribution:
     
     def get_efficiency(self) -> float:
         """Calculate the efficiency as percentage of chips used."""
-        total_chips = sum(self.chips_per_player.values()) + sum(self.unused_chips.values())
-        if total_chips == 0:
+        # Calculate total chips available across all colors
+        total_available_chips = 0
+        total_used_chips = 0
+        
+        for color in self.chips_per_player:
+            chips_per_player_this_color = self.chips_per_player[color]
+            unused_this_color = self.unused_chips.get(color, 0)
+            
+            # Total available for this color = used by all players + unused
+            total_used_this_color = chips_per_player_this_color * self.num_players
+            total_available_this_color = total_used_this_color + unused_this_color
+            
+            total_available_chips += total_available_this_color
+            total_used_chips += total_used_this_color
+        
+        if total_available_chips == 0:
             return 0.0
-        used_chips = sum(self.chips_per_player.values())
-        return (used_chips / total_chips) * 100
+            
+        return (total_used_chips / total_available_chips) * 100

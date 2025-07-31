@@ -452,6 +452,7 @@ class ChipSplitCalculator:
             chips_per_player=full_combination,
             total_value_per_player=total_value_per_player,
             unused_chips=unused_chips,
+            num_players=num_players,
         )
 
     def _evaluate_target_parallel(
@@ -525,6 +526,7 @@ class ChipSplitCalculator:
             chips_per_player=best_combination,
             total_value_per_player=total_value_per_player,
             unused_chips=unused_chips,
+            num_players=num_players,
         )
 
     def _generate_target_combinations(
@@ -678,6 +680,7 @@ class ChipSplitCalculator:
             chips_per_player=best_combination,
             total_value_per_player=total_value_per_player,
             unused_chips=unused_chips,
+            num_players=num_players,
         )
 
     def _evaluate_fixed_values_sampled(
@@ -764,6 +767,7 @@ class ChipSplitCalculator:
             chips_per_player=best_combination,
             total_value_per_player=total_value_per_player,
             unused_chips=unused_chips,
+            num_players=num_players,
         )
 
     def _create_fallback_distribution_fixed_values(
@@ -807,6 +811,7 @@ class ChipSplitCalculator:
             chips_per_player=chips_per_player,
             total_value_per_player=total_value_per_player,
             unused_chips=unused_chips,
+            num_players=num_players,
         )
 
     def _evaluate_distribution(
@@ -903,6 +908,7 @@ class ChipSplitCalculator:
             chips_per_player=best_combination,
             total_value_per_player=total_value_per_player,
             unused_chips=unused_chips,
+            num_players=num_players,
         )
 
     def _evaluate_distribution_sampled(
@@ -1021,6 +1027,7 @@ class ChipSplitCalculator:
             chips_per_player=best_combination,
             total_value_per_player=total_value_per_player,
             unused_chips=unused_chips,
+            num_players=num_players,
         )
 
     def _create_fallback_distribution(
@@ -1053,4 +1060,5 @@ class ChipSplitCalculator:
             chips_per_player=chips_per_player,
             total_value_per_player=total_value,
             unused_chips=unused_chips,
+            num_players=1,
         )
