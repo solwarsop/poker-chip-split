@@ -20,6 +20,57 @@ logger = logging.getLogger(__name__)
 DEFAULT_CHIP_VALUES = [0.05, 0.10, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000]
 
 
+def _evaluate_combinations_batch_exhaustive(
+    combinations_batch: list[tuple[int, ...]],
+    colors: list[str],
+    chip_values: dict[str, float],
+    buy_in_per_person: float,
+) -> tuple[Optional[dict[str, int]], Optional[tuple[float, float, float]]]:
+    """Evaluate a batch of chip combinations with exhaustive search (no pruning).
+    
+    Args:
+        combinations_batch: List of combinations to evaluate
+        colors: List of chip colors
+        chip_values: Mapping of colors to values
+        buy_in_per_person: Target buy-in per person
+        
+    Returns:
+        Tuple of (best_combination, best_score) for this batch
+    """
+    best_combination = None
+    best_score = None
+    
+    # Convert to numpy arrays for vectorized operations
+    combinations_array = np.array(combinations_batch)
+    values_array = np.array([chip_values[color] for color in colors])
+    
+    # Vectorized calculations
+    total_values_per_player = np.sum(combinations_array * values_array, axis=1)
+    errors = np.abs(total_values_per_player - buy_in_per_person)
+    
+    # NO PRUNING - evaluate all combinations
+    total_chips_per_player = np.sum(combinations_array, axis=1)
+    
+    # Primary score: minimize error (accuracy is most important)
+    # Secondary score: maximize number of different chip types used (diversity bonus)
+    # Tertiary score: maximize chips (for final tie-breaking)
+    accuracy_scores = 1000.0 / (1.0 + errors * 100)  # Higher for lower errors
+    chip_count_scores = total_chips_per_player  # Linear bonus for more chips
+    
+    # Diversity bonus: count number of non-zero chip types (heavily weighted)
+    diversity_scores = np.sum(combinations_array > 0, axis=1)
+    
+    # Combine scores: accuracy >> diversity >> chip count
+    scores = accuracy_scores * 1000000 + diversity_scores * 1000 + chip_count_scores
+    
+    # Find best combination in this batch
+    best_idx = np.argmax(scores)
+    best_combination = dict(zip(colors, combinations_array[best_idx]))
+    best_score = (accuracy_scores[best_idx], chip_count_scores[best_idx], diversity_scores[best_idx])
+
+    return best_combination, best_score
+
+
 def _evaluate_combinations_batch(
     combinations_batch: list[tuple[int, ...]],
     colors: list[str],
@@ -332,16 +383,8 @@ class ChipSplitCalculator:
         
         logger.info(f"Evaluating {total_combinations:,} chip combinations")
         
-        # For large search spaces, use smart sampling
-        max_combinations_threshold = 500_000
-        
-        if total_combinations > max_combinations_threshold:
-            logger.info("Large search space, using parallel batch processing")
-            return self._evaluate_target_parallel(
-                chip_set, valid_colors, chip_values, max_chips_per_color, buy_in_per_person, num_players,
-            )
-        
-        # Generate all combinations for smaller search spaces
+        # Always use exhaustive search for distribute command - no sampling
+        # Generate all combinations
         all_combinations = list(itertools.product(*ranges))
         
         # Process combinations in batches using the parallel approach
@@ -354,9 +397,9 @@ class ChipSplitCalculator:
         best_combination = None
         best_score = None
         
-        # Use parallel processing
+        # Use parallel processing with exhaustive search
         evaluate_func = partial(
-            _evaluate_combinations_batch,
+            _evaluate_combinations_batch_exhaustive,
             colors=valid_colors,
             chip_values=chip_values,
             buy_in_per_person=buy_in_per_person,
@@ -367,9 +410,17 @@ class ChipSplitCalculator:
         
         # Find the best result across all batches
         for combination, score in results:
-            if combination is not None and (best_score is None or (score[0] * 100 + score[1]) > (best_score[0] * 100 + best_score[1])):
-                best_score = score
-                best_combination = combination
+            if combination is not None and score is not None:
+                if best_score is None:
+                    best_score = score
+                    best_combination = combination
+                else:
+                    # Compare using the same scoring formula
+                    current_combined = score[0] * 10000 + score[1] * 100 + score[2]
+                    best_combined = best_score[0] * 10000 + best_score[1] * 100 + best_score[2]
+                    if current_combined > best_combined:
+                        best_score = score
+                        best_combination = combination
         
         if best_combination is None:
             return None
