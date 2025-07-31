@@ -1,18 +1,18 @@
 buy_in_per_person: 5.0
 chip_colors:
-  black:
+  white:
     count: 100
     value: 0.05
-  blue:
-    count: 100
-    value: 1.0
-  green:
-    count: 100
-    value: 0.5
   red:
     count: 100
     value: 0.1
-  white:
+  green:
     count: 100
     value: 0.25
+  blue:
+    count: 100
+    value: 0.5
+  black:
+    count: 100
+    value: 1
 num_players: 9
