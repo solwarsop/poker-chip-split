@@ -1,0 +1,16 @@
+# Example poker game configuration
+# This file defines the parameters for calculating optimal chip splits
+
+# Buy-in amount per player in dollars
+buy_in_per_person: 20.0
+
+# Number of players in the game
+num_players: 6
+
+# Available chips by color and quantity
+chip_colors:
+  white: 100    # Lowest value chips
+  red: 80       # Low value chips  
+  green: 60     # Medium value chips
+  black: 40     # High value chips
+  blue: 20      # Highest value chips
