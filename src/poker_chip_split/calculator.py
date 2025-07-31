@@ -189,7 +189,7 @@ class ChipSplitCalculator:
             total_permutations *= (len(self.possible_values) - i)
         
         logger.info(f"Evaluating up to {total_permutations:,} value permutations...")
-        logger.info(f"Target value per chip: ${target_value_per_chip:.4f}")
+        logger.info(f"Target value per chip: £{target_value_per_chip:.4f}")
         logger.info(f"Max possible chips per player: {max_possible_chips}")
         
         # OPTIMIZATION 4: Early termination criteria
@@ -302,7 +302,7 @@ class ChipSplitCalculator:
         
         logger.info("Fixed chip values:")
         for color in colors:
-            logger.info(f"  {color}: ${chip_values[color]:.2f}")
+            logger.info(f"  {color}: £{chip_values[color]:.2f}")
         
         # Calculate max chips per player for each color
         max_chips_per_color = {}
@@ -321,16 +321,16 @@ class ChipSplitCalculator:
             if max_chips_per_color[color] > 0
         )
         
-        logger.info(f"Maximum possible value per player: ${total_possible_value:.2f}")
+        logger.info(f"Maximum possible value per player: £{total_possible_value:.2f}")
         
         # Check if buy_in_per_person is specified and feasible
         if buy_in_per_person is not None:
             if buy_in_per_person > total_possible_value:
                 raise ValueError(
-                    f"Target buy-in per person (${buy_in_per_person:.2f}) exceeds maximum possible value "
-                    f"per player (${total_possible_value:.2f}) with available chips"
+                    f"Target buy-in per person (£{buy_in_per_person:.2f}) exceeds maximum possible value "
+                    f"per player (£{total_possible_value:.2f}) with available chips"
                 )
-            logger.info(f"Target buy-in per player: ${buy_in_per_person:.2f}")
+            logger.info(f"Target buy-in per player: £{buy_in_per_person:.2f}")
             logger.info("Starting targeted distribution optimization...")
             
             # Use targeted optimization when buy-in is specified

@@ -40,13 +40,13 @@ def print_distribution(distribution: ChipDistribution, config: PokerConfig) -> N
     print("="*60)
     
     print(f"\nGame Configuration:")
-    print(f"  Buy-in per player: ${config.buy_in_per_person:.2f}")
+    print(f"  Buy-in per player: £{config.buy_in_per_person:.2f}")
     print(f"  Number of players: {config.num_players}")
-    print(f"  Total pot: ${config.buy_in_per_person * config.num_players:.2f}")
+    print(f"  Total pot: £{config.buy_in_per_person * config.num_players:.2f}")
     
     print(f"\nChip Values:")
     for color, value in distribution.chip_values.items():
-        print(f"  {color.capitalize()}: ${value:.2f}")
+        print(f"  {color.capitalize()}: £{value:.2f}")
     
     print(f"\nPer Player Distribution:")
     total_value = 0
@@ -54,12 +54,12 @@ def print_distribution(distribution: ChipDistribution, config: PokerConfig) -> N
         value = distribution.chip_values[color]
         color_total = count * value
         total_value += color_total
-        print(f"  {color.capitalize()}: {count} chips (${color_total:.2f})")
+        print(f"  {color.capitalize()}: {count} chips (£{color_total:.2f})")
     
-    print(f"\nTotal value per player: ${total_value:.2f}")
-    print(f"Target buy-in: ${config.buy_in_per_person:.2f}")
+    print(f"\nTotal value per player: £{total_value:.2f}")
+    print(f"Target buy-in: £{config.buy_in_per_person:.2f}")
     error = abs(total_value - config.buy_in_per_person)
-    print(f"Error: ${error:.2f} ({error/config.buy_in_per_person*100:.1f}%)")
+    print(f"Error: £{error:.2f} ({error/config.buy_in_per_person*100:.1f}%)")
     
     print(f"\nUnused Chips:")
     total_unused = 0
@@ -117,8 +117,8 @@ def calculate_command(args: argparse.Namespace) -> int:
         # Load configuration
         config = PokerConfig.from_yaml_file(config_file)
         logger.info(f"Loaded configuration from: {config_file}")
-        logger.info(f"Game setup: {config.num_players} players, ${config.buy_in_per_person:.2f} buy-in per player")
-        logger.info(f"Total pot: ${config.buy_in_per_person * config.num_players:.2f}")
+        logger.info(f"Game setup: {config.num_players} players, £{config.buy_in_per_person:.2f} buy-in per player")
+        logger.info(f"Total pot: £{config.buy_in_per_person * config.num_players:.2f}")
         
         # Log chip set details
         total_chips = sum(config.chip_set.colors.values())
@@ -215,14 +215,14 @@ def distribute_command(args: argparse.Namespace) -> int:
         total_chips = sum(config.chip_set.colors.values())
         logger.info(f"Available chips: {total_chips} total across {len(fixed_values)} colors")
         for color, count in config.chip_set.colors.items():
-            logger.debug(f"  {color}: {count} chips (${fixed_values[color]:.2f} each)")
+            logger.debug(f"  {color}: {count} chips (£{fixed_values[color]:.2f} each)")
         
         # Calculate total value if all chips distributed
         total_available_value = sum(
             fixed_values[color] * config.chip_set.colors[color]
             for color in fixed_values
         )
-        logger.info(f"Total available value: ${total_available_value:.2f}")
+        logger.info(f"Total available value: £{total_available_value:.2f}")
         
         calculator = ChipSplitCalculator()
         
@@ -269,14 +269,14 @@ def print_distribution_fixed_values(distribution: ChipDistribution, config: Poke
     print("="*60)
     
     print(f"\nGame Configuration:")
-    print(f"  Buy-in per player: ${config.buy_in_per_person:.2f}")
+    print(f"  Buy-in per player: £{config.buy_in_per_person:.2f}")
     print(f"  Number of players: {config.num_players}")
     total_pot = config.buy_in_per_person * config.num_players
-    print(f"  Total pot: ${total_pot:.2f}")
+    print(f"  Total pot: £{total_pot:.2f}")
     
     print(f"\nChip Values (Fixed):")
     for color, value in distribution.chip_values.items():
-        print(f"  {color.capitalize()}: ${value:.2f}")
+        print(f"  {color.capitalize()}: £{value:.2f}")
     
     print(f"\nPer Player Distribution:")
     total_value = 0
@@ -287,15 +287,15 @@ def print_distribution_fixed_values(distribution: ChipDistribution, config: Poke
             color_total = count * value
             total_value += color_total
             total_chips += count
-            print(f"  {color.capitalize()}: {count} chips (${color_total:.2f})")
+            print(f"  {color.capitalize()}: {count} chips (£{color_total:.2f})")
     
-    print(f"\nTotal per player: {total_chips} chips worth ${total_value:.2f}")
-    print(f"Target buy-in: ${config.buy_in_per_person:.2f}")
+    print(f"\nTotal per player: {total_chips} chips worth £{total_value:.2f}")
+    print(f"Target buy-in: £{config.buy_in_per_person:.2f}")
     error = abs(total_value - config.buy_in_per_person)
     if error < 0.01:  # Practically perfect
         print(f"✓ Perfect match!")
     else:
-        print(f"Error: ${error:.2f} ({error/config.buy_in_per_person*100:.1f}%)")
+        print(f"Error: £{error:.2f} ({error/config.buy_in_per_person*100:.1f}%)")
     
     print(f"\nUnused Chips:")
     total_unused = 0
@@ -305,14 +305,14 @@ def print_distribution_fixed_values(distribution: ChipDistribution, config: Poke
         if count > 0:
             unused_value = count * distribution.chip_values[color]
             total_unused_value += unused_value
-            print(f"  {color.capitalize()}: {count} chips (${unused_value:.2f})")
+            print(f"  {color.capitalize()}: {count} chips (£{unused_value:.2f})")
     
     if total_unused == 0:
         print("  None - Perfect efficiency!")
     else:
         efficiency = distribution.get_efficiency()
         print(f"\nEfficiency: {efficiency:.1f}% ({total_unused} chips unused)")
-        print(f"Unused value: ${total_unused_value:.2f}")
+        print(f"Unused value: £{total_unused_value:.2f}")
 
 
 def main() -> int:

@@ -8,7 +8,7 @@ A Python package for calculating optimal poker chip distributions based on buy-i
 - **Optimal Distribution**: Calculates chip values that maximize chips per player while staying close to target buy-in
 - **All Colors Used**: Ensures every chip color is used, giving players a diverse mix of denominations
 - **Unique Chip Values**: Each chip color gets a different value (no duplicates)
-- **Standard Values**: Uses common poker chip values ($0.05, $0.10, $0.25, $0.50, $1, $2, $5, etc.)
+- **Standard Values**: Uses common poker chip values (£0.05, £0.10, £0.25, £0.50, £1, £2, £5, etc.)
 - **Custom Values**: Optional custom chip denominations in YAML configuration
 - **Flexible Input**: Support for any number of chip colors and quantities
 - **Command Line Interface**: Easy-to-use CLI for quick calculations
@@ -66,27 +66,27 @@ POKER CHIP DISTRIBUTION RESULTS
 ============================================================
 
 Game Configuration:
-  Buy-in per player: $20.00
+  Buy-in per player: £20.00
   Number of players: 6
-  Total pot: $120.00
+  Total pot: £120.00
 
 Chip Values:
-  White: $0.25
-  Red: $1.00
-  Green: $5.00
-  Black: $10.00
-  Blue: $25.00
+  White: £0.25
+  Red: £1.00
+  Green: £5.00
+  Black: £10.00
+  Blue: £25.00
 
 Per Player Distribution:
-  White: 16 chips ($4.00)
-  Red: 16 chips ($16.00)
-  Green: 0 chips ($0.00)
-  Black: 0 chips ($0.00)
-  Blue: 0 chips ($0.00)
+  White: 16 chips (£4.00)
+  Red: 16 chips (£16.00)
+  Green: 0 chips (£0.00)
+  Black: 0 chips (£0.00)
+  Blue: 0 chips (£0.00)
 
-Total value per player: $20.00
-Target buy-in: $20.00
-Error: $0.00 (0.0%)
+Total value per player: £20.00
+Target buy-in: £20.00
+Error: £0.00 (0.0%)
 
 Unused Chips:
   White: 4 chips
@@ -187,7 +187,7 @@ This approach ensures players get a diverse mix of chip denominations, maximizin
 
 The calculator uses these standard poker chip values by default:
 
-- $0.05, $0.10, $0.25, $0.50, $1.00, $2.00, $5.00, $10.00, $25.00, $50.00, $100.00, $200.00, $250.00, $500.00, $1000.00, $2000.00, $5000.00
+- £0.05, £0.10, £0.25, £0.50, £1.00, £2.00, £5.00, £10.00, £25.00, £50.00, £100.00, £200.00, £250.00, £500.00, £1000.00, £2000.00, £5000.00
 
 You can override these with the `--custom-values` option or by specifying `chip_values` in your YAML configuration.
 
