@@ -80,8 +80,9 @@ def calculate_command(args: argparse.Namespace) -> int:
         # Load configuration
         config = PokerConfig.from_yaml_file(config_file)
         
-        # Initialize calculator
-        calculator = ChipSplitCalculator(custom_values=args.custom_values)
+        # Initialize calculator with chip values from config or CLI args
+        chip_values = args.custom_values or config.get_chip_values()
+        calculator = ChipSplitCalculator(custom_values=chip_values)
         
         # Calculate optimal distribution
         distribution = calculator.calculate_optimal_split(

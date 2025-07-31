@@ -11,6 +11,10 @@ import yaml
 from .models import ChipSet
 
 
+# Default poker chip values in dollars
+DEFAULT_CHIP_VALUES = [0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+
+
 @dataclass
 class PokerConfig:
     """Configuration for a poker game chip split."""
@@ -18,6 +22,17 @@ class PokerConfig:
     buy_in_per_person: float
     num_players: int
     chip_set: ChipSet
+    chip_values: list[float] | None = None
+    
+    def get_chip_values(self) -> list[float]:
+        """Get the chip values to use, either custom or default.
+        
+        Returns:
+            List of chip values in dollars (always returns a copy)
+        """
+        if self.chip_values is not None:
+            return self.chip_values.copy()
+        return DEFAULT_CHIP_VALUES.copy()
     
     @classmethod
     def from_yaml_file(cls, file_path: str | Path) -> PokerConfig:
@@ -81,10 +96,23 @@ class PokerConfig:
             
             chip_set = ChipSet(colors=chip_set_data)
             
+            # Parse optional chip values
+            chip_values = None
+            if "chip_values" in data:
+                try:
+                    chip_values = [float(value) for value in data["chip_values"]]
+                    if not chip_values:
+                        raise ValueError("chip_values cannot be empty")
+                    if any(value <= 0 for value in chip_values):
+                        raise ValueError("All chip values must be positive")
+                except (ValueError, TypeError) as e:
+                    raise ValueError(f"Invalid chip_values: {e}") from e
+            
             return cls(
                 buy_in_per_person=buy_in_per_person,
                 num_players=num_players,
                 chip_set=chip_set,
+                chip_values=chip_values,
             )
             
         except KeyError as e:
@@ -101,11 +129,15 @@ class PokerConfig:
         file_path = Path(file_path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         
-        data = {
+        data: dict[str, Any] = {
             "buy_in_per_person": self.buy_in_per_person,
             "num_players": self.num_players,
             "chip_colors": self.chip_set.colors,
         }
+        
+        # Include chip values if they are specified
+        if self.chip_values is not None:
+            data["chip_values"] = self.chip_values
         
         with file_path.open("w", encoding="utf-8") as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=True)

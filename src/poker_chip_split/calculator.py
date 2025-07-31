@@ -7,12 +7,12 @@ from typing import Optional
 
 from .models import ChipDistribution, ChipSet
 
+# Default poker chip values in dollars - moved here for consistency
+DEFAULT_CHIP_VALUES = [0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+
 
 class ChipSplitCalculator:
     """Calculate optimal poker chip distributions for poker games."""
-
-    # Standard poker chip values in dollars
-    STANDARD_VALUES = [0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]
 
     def __init__(self, custom_values: Optional[list[float]] = None) -> None:
         """Initialize calculator with optional custom chip values.
@@ -20,7 +20,7 @@ class ChipSplitCalculator:
         Args:
             custom_values: Optional list of custom chip values to use instead of defaults
         """
-        self.possible_values = custom_values or self.STANDARD_VALUES
+        self.possible_values = custom_values or DEFAULT_CHIP_VALUES
 
     def calculate_optimal_split(
         self, 

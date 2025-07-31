@@ -1,0 +1,18 @@
+# Example poker game configuration with custom chip values
+# This demonstrates using non-standard chip denominations
+
+# Buy-in amount per player in dollars  
+buy_in_per_person: 25.0
+
+# Number of players in the game
+num_players: 4
+
+# Available chips by color and quantity
+chip_colors:
+  white: 80     # $0.50 chips
+  red: 60       # $1.00 chips
+  green: 40     # $3.00 chips
+  black: 30     # $15.00 chips
+
+# Custom chip values for non-standard denominations
+chip_values: [0.5, 1.0, 3.0, 15.0]
