@@ -2,18 +2,18 @@
 # This file defines the parameters for calculating optimal chip splits
 
 # Buy-in amount per player in dollars
-buy_in_per_person: 20.0
+buy_in_per_person: 5
 
 # Number of players in the game
-num_players: 6
+num_players: 9
 
 # Available chips by color and quantity
 chip_colors:
-  white: 100    # Lowest value chips
-  red: 80       # Low value chips  
-  green: 60     # Medium value chips
-  black: 40     # High value chips
-  blue: 20      # Highest value chips
+  white: 100
+  red: 100
+  green: 100
+  black: 100
+  blue: 100
 
 # Optional: Define custom chip values (defaults used if not specified)
-chip_values: [0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+# chip_values: [0.05, 0.10, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000]

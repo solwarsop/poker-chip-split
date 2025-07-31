@@ -44,8 +44,16 @@ class ChipSplitCalculator:
         best_distribution = None
         min_unused_chips = float("inf")
         
-        # Try all possible combinations of values for the available colors
-        for value_combination in itertools.product(self.possible_values, repeat=len(colors)):
+        # Ensure we have enough possible values for all colors
+        if len(self.possible_values) < len(colors):
+            raise ValueError(
+                f"Not enough chip values ({len(self.possible_values)}) for all colors ({len(colors)}). "
+                f"Need at least {len(colors)} different values."
+            )
+        
+        # Try all possible permutations of values for the available colors
+        # Use permutations to ensure each color gets a unique value
+        for value_combination in itertools.permutations(self.possible_values, len(colors)):
             distribution = self._evaluate_distribution(
                 chip_set, colors, value_combination, buy_in_per_person, num_players,
             )
@@ -122,12 +130,14 @@ class ChipSplitCalculator:
         self, chip_set: ChipSet, colors: list[str], buy_in_per_person: float,
     ) -> ChipDistribution:
         """Create a basic fallback distribution when optimization fails."""
-        # Assign lowest possible values to colors
+        # Assign unique values to colors (first N values for N colors)
         chip_values = {}
         for i, color in enumerate(colors):
             if i < len(self.possible_values):
                 chip_values[color] = self.possible_values[i]
             else:
+                # If we run out of values, use the highest available value
+                # This shouldn't happen due to the check in calculate_optimal_split
                 chip_values[color] = self.possible_values[-1]
         
         # Give minimal chips

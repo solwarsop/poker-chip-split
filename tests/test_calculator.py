@@ -1,5 +1,7 @@
 """Tests for the poker chip split calculator."""
 
+import pytest
+
 from poker_chip_split.calculator import ChipSplitCalculator
 from poker_chip_split.models import ChipSet
 
@@ -77,17 +79,50 @@ class TestChipSplitCalculator:
         assert len(distribution.chip_values) == 2
         assert distribution.total_value_per_player > 0
 
-    def test_single_color_chips(self) -> None:
-        """Test with only one color of chips."""
-        chip_set = ChipSet(colors={"blue": 50})
+    def test_single_color_chips(self):
+        """Test calculation with only one color of chips."""
+        chip_set = ChipSet(colors={"red": 50})
+        calculator = ChipSplitCalculator()
+        
+        distribution = calculator.calculate_optimal_split(
+            chip_set=chip_set,
+            buy_in_per_person=10.0,
+            num_players=2,
+        )
+        
+        # Should use one of the available values for the single color
+        assert distribution.chip_values["red"] in calculator.possible_values
+        assert distribution.chips_per_player["red"] > 0
+        assert distribution.get_total_unused_chips() >= 0
+
+    def test_unique_chip_values(self):
+        """Test that each chip color gets a unique value."""
+        chip_set = ChipSet(colors={"white": 100, "red": 80, "green": 60, "black": 40})
         calculator = ChipSplitCalculator()
         
         distribution = calculator.calculate_optimal_split(
             chip_set=chip_set,
             buy_in_per_person=25.0,
-            num_players=2,
+            num_players=4,
         )
         
-        assert len(distribution.chip_values) == 1
-        assert "blue" in distribution.chip_values
-        assert distribution.chip_values["blue"] > 0
+        # Check that all chip values are unique
+        chip_values = list(distribution.chip_values.values())
+        assert len(chip_values) == len(set(chip_values)), "All chip colors should have unique values"
+        
+        # Verify we have the expected number of different values
+        assert len(chip_values) == 4
+
+    def test_insufficient_chip_values_error(self):
+        """Test that an error is raised when there aren't enough possible values for all colors."""
+        chip_set = ChipSet(colors={"white": 100, "red": 80, "green": 60, "black": 40, "blue": 20})
+        
+        # Create calculator with fewer values than colors
+        calculator = ChipSplitCalculator(custom_values=[1.0, 5.0])  # Only 2 values for 5 colors
+        
+        with pytest.raises(ValueError, match="Not enough chip values"):
+            calculator.calculate_optimal_split(
+                chip_set=chip_set,
+                buy_in_per_person=20.0,
+                num_players=4,
+            )

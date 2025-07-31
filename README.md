@@ -6,7 +6,9 @@ A Python package for calculating optimal poker chip distributions based on buy-i
 
 - **YAML Configuration**: Define game parameters in easy-to-read YAML files
 - **Optimal Distribution**: Calculates chip values that minimize waste
+- **Unique Chip Values**: Each chip color gets a different value (no duplicates)
 - **Standard Values**: Uses common poker chip values ($0.25, $0.50, $1, $2, $5, $10, etc.)
+- **Custom Values**: Optional custom chip denominations in YAML configuration
 - **Flexible Input**: Support for any number of chip colors and quantities
 - **Command Line Interface**: Easy-to-use CLI for quick calculations
 - **Efficiency Reporting**: Shows how many chips go unused
@@ -110,6 +112,9 @@ chip_colors:               # Available chips
   red: 100
   green: 50
   black: 25
+
+# Optional: Custom chip values (must have at least as many values as colors)
+# chip_values: [0.5, 1.0, 5.0, 25.0]  # Each color gets a unique value
 ```
 
 ### Command Line Options

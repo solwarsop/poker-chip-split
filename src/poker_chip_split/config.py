@@ -12,7 +12,7 @@ from .models import ChipSet
 
 
 # Default poker chip values in dollars
-DEFAULT_CHIP_VALUES = [0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+DEFAULT_CHIP_VALUES = [0.05, 0.10, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000]
 
 
 @dataclass
