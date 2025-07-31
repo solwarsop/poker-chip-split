@@ -3,12 +3,24 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
 from .calculator import ChipSplitCalculator
 from .config import PokerConfig, create_example_config
 from .models import ChipDistribution
+
+
+def setup_logging(verbose: bool = False) -> None:
+    """Set up logging configuration.
+    
+    Args:
+        verbose: If True, set logging level to DEBUG, otherwise INFO
+    """
+    level = logging.DEBUG if verbose else logging.INFO
+    format_str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    logging.basicConfig(level=level, format=format_str)
 
 
 def print_distribution(distribution: ChipDistribution, config: PokerConfig) -> None:
@@ -74,14 +86,55 @@ def create_example_command(args: argparse.Namespace) -> int:
 
 def calculate_command(args: argparse.Namespace) -> int:
     """Handle the calculate command."""
+    # Set up logging first
+    setup_logging(verbose=args.verbose)
+    
+    logger = logging.getLogger(__name__)
     config_file = Path(args.config_file)
     
     try:
         # Load configuration
         config = PokerConfig.from_yaml_file(config_file)
+        logger.info(f"Loaded configuration from: {config_file}")
+        logger.info(f"Game setup: {config.num_players} players, ${config.buy_in_per_person:.2f} buy-in per player")
+        logger.info(f"Total pot: ${config.buy_in_per_person * config.num_players:.2f}")
+        
+        # Log chip set details
+        total_chips = sum(config.chip_set.colors.values())
+        logger.info(f"Available chips: {total_chips} total across {len(config.chip_set.colors)} colors")
+        for color, count in config.chip_set.colors.items():
+            logger.debug(f"  {color}: {count} chips")
         
         # Initialize calculator with chip values from config or CLI args
         chip_values = args.custom_values or config.get_chip_values()
+        logger.info(f"Using {len(chip_values)} possible chip values: {chip_values}")
+        
+        # Calculate total combinations to check
+        colors = list(config.chip_set.colors.keys())
+        num_colors = len(colors)
+        
+        # Calculate value permutations
+        total_permutations = 1
+        for i in range(num_colors):
+            total_permutations *= (len(chip_values) - i)
+        
+        # Calculate average chip combinations per permutation
+        avg_combinations_per_permutation = 1
+        for color in colors:
+            available_chips = config.chip_set.get_color_count(color)
+            max_per_player = available_chips // config.num_players
+            if max_per_player > 0:
+                avg_combinations_per_permutation *= max_per_player
+        
+        total_combinations = total_permutations * avg_combinations_per_permutation
+        
+        logger.info(
+            f"Search space: {total_permutations:,} value permutations x "
+            f"~{avg_combinations_per_permutation:,} chip combinations = "
+            f"~{total_combinations:,} total combinations"
+        )
+        logger.info("Starting exhaustive search...")
+        
         calculator = ChipSplitCalculator(custom_values=chip_values)
         
         # Calculate optimal distribution
@@ -122,11 +175,18 @@ Examples:
         """,
     )
     
+    # Global arguments
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose logging (DEBUG level)",
+    )
+    
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
     # Create example command
     create_parser = subparsers.add_parser(
-        "create-example", 
+        "create-example",
         help="Create an example configuration file",
     )
     create_parser.add_argument(
@@ -157,13 +217,17 @@ Examples:
     
     args = parser.parse_args()
     
+    # Set up logging based on verbose flag
+    setup_logging(verbose=getattr(args, "verbose", False))
+    
     if args.command == "create-example":
         return create_example_command(args)
-    elif args.command == "calculate":
+    
+    if args.command == "calculate":
         return calculate_command(args)
-    else:
-        parser.print_help()
-        return 1
+    
+    parser.print_help()
+    return 1
 
 
 if __name__ == "__main__":

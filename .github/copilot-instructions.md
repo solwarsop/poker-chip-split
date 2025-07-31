@@ -1,4 +1,4 @@
-Run Python scripts using the conda environment `idv-torchserve-dev` to ensure all dependencies are correctly installed. Do not use pip. Use conda for any environment changes.
+Run Python scripts using the conda environment `poker-chip-split` to ensure all dependencies are correctly installed. Do not use pip. For any environment changes, edit `dev-environment.yml`, then call `conda env update -f dev-environment.yml` to apply the changes.
 
 After completing your changes, as part of your final summary, provide a suggested commit message that describes the changes made. The commit message should be concise and follow the format: `feat: <description>` for new features, `fix: <description>` for bug fixes, or `docs: <description>` for documentation updates. Make sure to wrap any code snippets in the commit message with backticks (``).
 
