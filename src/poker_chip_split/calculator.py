@@ -17,7 +17,7 @@ from .models import ChipDistribution, ChipSet
 logger = logging.getLogger(__name__)
 
 # Default poker chip values in dollars - moved here for consistency
-DEFAULT_CHIP_VALUES = [0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+DEFAULT_CHIP_VALUES = [0.05, 0.10, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000]
 
 
 def _evaluate_combinations_batch(
@@ -207,6 +207,318 @@ class ChipSplitCalculator:
             logger.info(f"Pruned {pruned_count:,} unpromising value combinations")
         logger.info(f"Checked {permutations_checked:,}/{total_permutations:,} permutations")
         return best_distribution
+
+    def calculate_distribution_with_values(
+        self,
+        chip_set: ChipSet,
+        chip_values: dict[str, float],
+        num_players: int,
+    ) -> ChipDistribution:
+        """Calculate optimal chip distribution when both chip counts and values are fixed.
+        
+        This mode takes predefined chip values and finds the optimal distribution
+        that maximizes chip usage while providing fair distribution to all players.
+        
+        Args:
+            chip_set: Available chips by color
+            chip_values: Fixed values for each chip color
+            num_players: Number of players
+            
+        Returns:
+            ChipDistribution with optimal quantities for the fixed values
+            
+        Raises:
+            ValueError: If chip colors don't match between chip_set and chip_values
+        """
+        colors = list(chip_set.colors.keys())
+        value_colors = set(chip_values.keys())
+        chip_colors = set(colors)
+        
+        # Validate that all colors have values and vice versa
+        if value_colors != chip_colors:
+            missing_values = chip_colors - value_colors
+            extra_values = value_colors - chip_colors
+            error_msg = []
+            if missing_values:
+                error_msg.append(f"Missing values for colors: {sorted(missing_values)}")
+            if extra_values:
+                error_msg.append(f"Extra values for non-existent colors: {sorted(extra_values)}")
+            raise ValueError(". ".join(error_msg))
+        
+        logger.info(f"Fixed chip values:")
+        for color in colors:
+            logger.info(f"  {color}: ${chip_values[color]:.2f}")
+        
+        # Calculate max chips per player for each color
+        max_chips_per_color = {}
+        for color in colors:
+            available_chips = chip_set.get_color_count(color)
+            max_per_player = available_chips // num_players
+            max_chips_per_color[color] = max_per_player
+            
+            if max_per_player == 0:
+                logger.warning(f"Color {color} has insufficient chips for all players ({available_chips} available)")
+        
+        # Calculate total value if all available chips were distributed
+        total_possible_value = sum(
+            chip_values[color] * max_chips_per_color[color]
+            for color in colors
+            if max_chips_per_color[color] > 0
+        )
+        
+        logger.info(f"Maximum possible value per player: ${total_possible_value:.2f}")
+        logger.info(f"Starting distribution optimization...")
+        
+        # Use the existing evaluation method but with fixed values
+        best_distribution = self._evaluate_distribution_fixed_values(
+            chip_set, colors, chip_values, max_chips_per_color, num_players
+        )
+        
+        if best_distribution is None:
+            logger.warning("No valid distribution found, creating minimal fallback")
+            return self._create_fallback_distribution_fixed_values(
+                chip_set, colors, chip_values, num_players
+            )
+        
+        logger.info("Distribution optimization completed")
+        return best_distribution
+
+    def _evaluate_distribution_fixed_values(
+        self,
+        chip_set: ChipSet,
+        colors: list[str],
+        chip_values: dict[str, float],
+        max_chips_per_color: dict[str, int],
+        num_players: int,
+    ) -> ChipDistribution | None:
+        """Evaluate chip distribution with fixed values using exhaustive search."""
+        # Filter out colors with no available chips
+        valid_colors = [color for color in colors if max_chips_per_color[color] > 0]
+        
+        if not valid_colors:
+            return None
+        
+        # Create ranges for each valid color (0 to max_chips_per_player)
+        # Note: We allow 0 chips for flexibility, unlike the optimization mode
+        ranges = [range(0, max_chips_per_color[color] + 1) for color in valid_colors]
+        
+        # Calculate total combinations
+        total_combinations = 1
+        for r in ranges:
+            total_combinations *= len(r)
+        
+        logger.info(f"Evaluating {total_combinations:,} chip combinations")
+        
+        # For very large search spaces, use sampling
+        max_combinations_threshold = 500_000
+        
+        if total_combinations > max_combinations_threshold:
+            logger.info("Large search space, using smart sampling")
+            return self._evaluate_fixed_values_sampled(
+                chip_set, valid_colors, chip_values, max_chips_per_color, num_players
+            )
+        
+        # Generate all combinations for smaller search spaces
+        all_combinations = list(itertools.product(*ranges))
+        
+        best_combination = None
+        best_score = None
+        
+        # Process combinations in batches for memory efficiency
+        batch_size = min(50000, total_combinations)
+        num_batches = (total_combinations + batch_size - 1) // batch_size
+        
+        for batch_idx in range(num_batches):
+            start_idx = batch_idx * batch_size
+            end_idx = min(start_idx + batch_size, total_combinations)
+            batch_combinations = all_combinations[start_idx:end_idx]
+            
+            for combination in batch_combinations:
+                # Create full combination including colors with 0 chips
+                full_combination = {}
+                for i, color in enumerate(valid_colors):
+                    full_combination[color] = combination[i]
+                
+                # Add colors with no available chips as 0
+                for color in colors:
+                    if color not in full_combination:
+                        full_combination[color] = 0
+                
+                # Skip if no chips are distributed at all
+                total_chips = sum(full_combination.values())
+                if total_chips == 0:
+                    continue
+                
+                # Calculate total value per player
+                total_value_per_player = sum(
+                    full_combination[color] * chip_values[color]
+                    for color in colors
+                )
+                
+                # Score based on total chips distributed (maximize usage)
+                # Secondary factor: prefer more balanced distributions
+                balance_penalty = 0
+                non_zero_counts = [count for count in full_combination.values() if count > 0]
+                if len(non_zero_counts) > 1:
+                    avg_count = sum(non_zero_counts) / len(non_zero_counts)
+                    balance_penalty = sum(abs(count - avg_count) for count in non_zero_counts)
+                
+                score = (total_chips, total_value_per_player, -balance_penalty)
+                
+                if best_score is None or score > best_score:
+                    best_score = score
+                    best_combination = full_combination.copy()
+        
+        if best_combination is None:
+            return None
+        
+        # Calculate unused chips
+        unused_chips = {}
+        for color in colors:
+            used_chips = best_combination[color] * num_players
+            unused_chips[color] = chip_set.get_color_count(color) - used_chips
+        
+        # Calculate total value per player
+        total_value_per_player = sum(
+            best_combination[color] * chip_values[color]
+            for color in colors
+        )
+        
+        return ChipDistribution(
+            chip_values=chip_values,
+            chips_per_player=best_combination,
+            total_value_per_player=total_value_per_player,
+            unused_chips=unused_chips,
+        )
+
+    def _evaluate_fixed_values_sampled(
+        self,
+        chip_set: ChipSet,
+        colors: list[str],
+        chip_values: dict[str, float],
+        max_chips_per_color: dict[str, int],
+        num_players: int,
+    ) -> ChipDistribution | None:
+        """Evaluate distribution using smart sampling for large search spaces."""
+        logger.info("Using smart sampling for large search space")
+        
+        best_combination = None
+        best_score = None
+        
+        # Strategy 1: Maximize total chips distributed
+        combinations_to_try = []
+        
+        # Try maximum for each color individually
+        for focus_color in colors:
+            if max_chips_per_color[focus_color] > 0:
+                combo = {color: 0 for color in colors}
+                combo[focus_color] = max_chips_per_color[focus_color]
+                combinations_to_try.append(combo)
+        
+        # Try balanced distributions
+        avg_chips = sum(max_chips_per_color.values()) // len(colors)
+        for target_total in [avg_chips, avg_chips * 2, avg_chips // 2]:
+            if target_total > 0:
+                combo = {}
+                remaining = target_total
+                for color in colors:
+                    max_for_color = max_chips_per_color[color]
+                    chips_for_color = min(max_for_color, remaining // (len(colors) - len(combo)))
+                    combo[color] = chips_for_color
+                    remaining -= chips_for_color
+                combinations_to_try.append(combo)
+        
+        # Try high-value focus
+        sorted_colors = sorted(colors, key=lambda c: chip_values[c], reverse=True)
+        combo = {color: 0 for color in colors}
+        for color in sorted_colors[:3]:  # Focus on top 3 highest value colors
+            if max_chips_per_color[color] > 0:
+                combo[color] = max_chips_per_color[color]
+        combinations_to_try.append(combo)
+        
+        # Evaluate all candidate combinations
+        for chips_per_player in combinations_to_try:
+            total_chips = sum(chips_per_player.values())
+            if total_chips == 0:
+                continue
+            
+            # Calculate total value per player
+            total_value_per_player = sum(
+                chips_per_player[color] * chip_values[color]
+                for color in colors
+            )
+            
+            # Score: prioritize total chips, then total value
+            score = (total_chips, total_value_per_player)
+            
+            if best_score is None or score > best_score:
+                best_score = score
+                best_combination = chips_per_player.copy()
+        
+        if best_combination is None:
+            return None
+        
+        # Calculate unused chips
+        unused_chips = {}
+        for color in colors:
+            used_chips = best_combination[color] * num_players
+            unused_chips[color] = chip_set.get_color_count(color) - used_chips
+        
+        # Calculate total value per player
+        total_value_per_player = sum(
+            best_combination[color] * chip_values[color]
+            for color in colors
+        )
+        
+        return ChipDistribution(
+            chip_values=chip_values,
+            chips_per_player=best_combination,
+            total_value_per_player=total_value_per_player,
+            unused_chips=unused_chips,
+        )
+
+    def _create_fallback_distribution_fixed_values(
+        self,
+        chip_set: ChipSet,
+        colors: list[str],
+        chip_values: dict[str, float],
+        num_players: int,
+    ) -> ChipDistribution:
+        """Create a basic fallback distribution for fixed values mode."""
+        # Give 1 chip of the highest value color that has enough chips
+        sorted_colors = sorted(
+            colors,
+            key=lambda c: (chip_values[c], chip_set.get_color_count(c) // num_players),
+            reverse=True,
+        )
+        
+        chips_per_player = {color: 0 for color in colors}
+        
+        # Find the best color to distribute
+        for color in sorted_colors:
+            available_per_player = chip_set.get_color_count(color) // num_players
+            if available_per_player > 0:
+                chips_per_player[color] = 1
+                break
+        
+        # Calculate unused chips
+        unused_chips = {}
+        for color in colors:
+            used_chips = chips_per_player[color] * num_players
+            unused_chips[color] = chip_set.get_color_count(color) - used_chips
+        
+        # Calculate total value per player
+        total_value_per_player = sum(
+            chips_per_player[color] * chip_values[color]
+            for color in colors
+        )
+        
+        return ChipDistribution(
+            chip_values=chip_values,
+            chips_per_player=chips_per_player,
+            total_value_per_player=total_value_per_player,
+            unused_chips=unused_chips,
+        )
 
     def _evaluate_distribution(
         self,

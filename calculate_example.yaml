@@ -1,0 +1,8 @@
+buy_in_per_person: 5.0
+chip_colors:
+  black: 100
+  blue: 100
+  green: 100
+  red: 100
+  white: 100
+num_players: 9
