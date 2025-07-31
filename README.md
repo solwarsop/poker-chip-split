@@ -5,9 +5,10 @@ A Python package for calculating optimal poker chip distributions based on buy-i
 ## Features
 
 - **YAML Configuration**: Define game parameters in easy-to-read YAML files
-- **Optimal Distribution**: Calculates chip values that minimize waste
+- **Optimal Distribution**: Calculates chip values that maximize chips per player while staying close to target buy-in
+- **All Colors Used**: Ensures every chip color is used, giving players a diverse mix of denominations
 - **Unique Chip Values**: Each chip color gets a different value (no duplicates)
-- **Standard Values**: Uses common poker chip values ($0.25, $0.50, $1, $2, $5, $10, etc.)
+- **Standard Values**: Uses common poker chip values ($0.05, $0.10, $0.25, $0.50, $1, $2, $5, etc.)
 - **Custom Values**: Optional custom chip denominations in YAML configuration
 - **Flexible Input**: Support for any number of chip colors and quantities
 - **Command Line Interface**: Easy-to-use CLI for quick calculations
@@ -174,16 +175,21 @@ print(f"Unused chips: {distribution.get_total_unused_chips()}")
 The calculator:
 
 1. **Tries all combinations** of standard poker chip values for your available colors
-2. **Optimizes for minimal waste** by finding the combination that uses the most chips
-3. **Uses greedy allocation** starting with highest-value chips
-4. **Validates results** ensuring each player gets close to the target buy-in amount
+2. **Ensures all colors are used** by giving each player at least 1 chip of every color
+3. **Optimizes for maximum chips per player** while staying close to the target buy-in amount
+4. **Ensures unique values** with each chip color getting a different denomination
+5. **Uses greedy allocation** to efficiently distribute remaining value after initial allocation
+6. **Validates results** ensuring each player gets close to the target buy-in amount
+
+This approach ensures players get a diverse mix of chip denominations, maximizing the total number of chips for better poker gameplay with more flexibility for betting and making change.
 
 ### Standard Chip Values
 
 The calculator uses these standard poker chip values by default:
-- $0.25, $0.50, $1.00, $2.00, $5.00, $10.00, $25.00, $50.00, $100.00
 
-You can override these with the `--custom-values` option.
+- $0.05, $0.10, $0.25, $0.50, $1.00, $2.00, $5.00, $10.00, $25.00, $50.00, $100.00, $200.00, $250.00, $500.00, $1000.00, $2000.00, $5000.00
+
+You can override these with the `--custom-values` option or by specifying `chip_values` in your YAML configuration.
 
 ## Development
 

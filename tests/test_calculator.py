@@ -47,7 +47,7 @@ class TestChipSplitCalculator:
         assert error_percent <= 30.0  # Within 30% tolerance (more realistic for optimization)
 
     def test_efficiency_optimization(self) -> None:
-        """Test that calculator optimizes for efficiency."""
+        """Test that calculator optimizes for maximum chips per player."""
         # Case with many chips available
         chip_set = ChipSet(colors={"white": 100, "red": 100, "green": 100})
         calculator = ChipSplitCalculator()
@@ -58,9 +58,13 @@ class TestChipSplitCalculator:
             num_players=4,
         )
         
-        # Should use a reasonable number of chips (not waste too many)
-        efficiency = distribution.get_efficiency()
-        assert efficiency > 10.0  # Should use at least 10% of available chips
+        # Should give each player a substantial number of chips for good poker gameplay
+        total_chips_per_player = sum(distribution.chips_per_player.values())
+        assert total_chips_per_player >= 20  # Each player should get at least 20 chips
+        
+        # Should still maintain reasonable accuracy
+        error_percent = abs(distribution.total_value_per_player - 20.0) / 20.0 * 100
+        assert error_percent <= 30.0  # Within 30% tolerance
 
     def test_fallback_distribution(self) -> None:
         """Test fallback when no optimal distribution is found."""
@@ -126,3 +130,22 @@ class TestChipSplitCalculator:
                 buy_in_per_person=20.0,
                 num_players=4,
             )
+
+    def test_all_colors_used_constraint(self):
+        """Test that all chip colors are used in the distribution."""
+        chip_set = ChipSet(colors={"white": 100, "red": 80, "green": 60, "black": 40})
+        calculator = ChipSplitCalculator()
+        
+        distribution = calculator.calculate_optimal_split(
+            chip_set=chip_set,
+            buy_in_per_person=10.0,
+            num_players=4,
+        )
+        
+        # Check that all colors are used (each player gets at least 1 chip of each color)
+        for color in ["white", "red", "green", "black"]:
+            assert color in distribution.chips_per_player
+            assert distribution.chips_per_player[color] >= 1, f"Color {color} should have at least 1 chip per player"
+        
+        # Verify we have the expected number of different colors
+        assert len(distribution.chips_per_player) == 4

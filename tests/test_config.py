@@ -209,7 +209,7 @@ class TestPokerConfig:
 
     def test_default_chip_values_constant(self):
         """Test that DEFAULT_CHIP_VALUES contains expected values."""
-        expected_values = [0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0, 100.0]
+        expected_values = [0.05, 0.10, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000]
         assert DEFAULT_CHIP_VALUES == expected_values
 
     def test_get_chip_values_returns_copy(self):

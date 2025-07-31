@@ -42,7 +42,7 @@ class ChipSplitCalculator:
         colors = list(chip_set.colors.keys())
         
         best_distribution = None
-        min_unused_chips = float("inf")
+        best_score = None
         
         # Ensure we have enough possible values for all colors
         if len(self.possible_values) < len(colors):
@@ -58,8 +58,23 @@ class ChipSplitCalculator:
                 chip_set, colors, value_combination, buy_in_per_person, num_players,
             )
             
-            if distribution and distribution.get_total_unused_chips() < min_unused_chips:
-                min_unused_chips = distribution.get_total_unused_chips()
+            if distribution is None:
+                continue
+                
+            # Calculate total chips per player (what we want to maximize)
+            total_chips_per_player = sum(distribution.chips_per_player.values())
+            
+            # Calculate error from target buy-in (what we want to minimize)
+            error = abs(distribution.total_value_per_player - buy_in_per_person)
+            
+            # Prefer distributions with more chips per player and less error
+            # Heavily favor total chips per player for better poker gameplay
+            # Only penalize error if it's significant (>5%)
+            error_penalty = max(0, error - 0.25) * 100  # Only penalize errors above $0.25
+            score = (total_chips_per_player * 10, -error_penalty)  # Heavily weight chip count
+            
+            if best_score is None or score > best_score:
+                best_score = score
                 best_distribution = distribution
         
         if best_distribution is None:
@@ -84,27 +99,42 @@ class ChipSplitCalculator:
         chips_per_player = {}
         total_value_per_player = 0
         
-        # Sort colors by value (highest first) for greedy allocation
-        sorted_colors = sorted(colors, key=lambda c: chip_values[c], reverse=True)
-        
-        remaining_value = buy_in_per_person
-        
-        for color in sorted_colors:
-            value = chip_values[color]
+        # STEP 1: Ensure all colors are used (give at least 1 chip of each color)
+        for color in colors:
             available_chips = chip_set.get_color_count(color)
             max_chips_per_player = available_chips // num_players
             
-            # Calculate how many chips of this color each player should get
-            chips_needed = int(remaining_value // value)
-            chips_to_give = min(chips_needed, max_chips_per_player)
+            if max_chips_per_player == 0:
+                return None  # Not enough chips of this color for all players
             
-            chips_per_player[color] = chips_to_give
-            total_value_per_player += chips_to_give * value
-            remaining_value -= chips_to_give * value
-            
-            # Stop if we've allocated enough value
-            if remaining_value < min(self.possible_values):
+            # Give at least 1 chip of each color to each player
+            chips_per_player[color] = 1
+            total_value_per_player += chip_values[color]
+        
+        # STEP 2: Allocate remaining value using greedy approach
+        # Sort colors by value (highest first) for efficient allocation
+        sorted_colors = sorted(colors, key=lambda c: chip_values[c], reverse=True)
+        
+        remaining_value = buy_in_per_person - total_value_per_player
+        
+        for color in sorted_colors:
+            if remaining_value <= 0:
                 break
+                
+            value = chip_values[color]
+            available_chips = chip_set.get_color_count(color)
+            max_chips_per_player = available_chips // num_players
+            current_chips = chips_per_player[color]
+            
+            # Calculate how many additional chips of this color each player should get
+            additional_chips_needed = int(remaining_value // value)
+            additional_chips_possible = max_chips_per_player - current_chips
+            additional_chips = min(additional_chips_needed, additional_chips_possible)
+            
+            if additional_chips > 0:
+                chips_per_player[color] += additional_chips
+                total_value_per_player += additional_chips * value
+                remaining_value -= additional_chips * value
         
         # Calculate unused chips
         unused_chips = {}
@@ -114,7 +144,7 @@ class ChipSplitCalculator:
         
         # Check if this distribution is reasonable (gets close to buy-in amount)
         value_error = abs(total_value_per_player - buy_in_per_person)
-        max_acceptable_error = buy_in_per_person * 0.1  # 10% tolerance
+        max_acceptable_error = buy_in_per_person * 0.2  # 20% tolerance (increased for constraint)
         
         if value_error > max_acceptable_error:
             return None
